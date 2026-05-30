@@ -1,53 +1,89 @@
-/**
- * BINOVA — Smart Waste Management
- * Fichier : src/app/app.routes.ts
- * Auteur  : SGAO-SARL © 2026
- * Rôle    : Configuration du routing Angular (lazy-loading)
- */
-
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
-
-  // Auth (sans shell)
-  { path: 'auth/login', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
-  { path: 'auth/register', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
-  { path: 'auth/forgot-password', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
-
-  // App citoyens (avec shell + guard)
   {
-    path: 'app',
-    // canActivate: [authGuard],
-    loadComponent: () => import('./shared/components/app-shell.component').then(m => m.AppShellComponent),
-    children: [
-      { path: '', redirectTo: 'map', pathMatch: 'full' },
-      { path: 'map', loadComponent: () => import('./features/map/bin-map.component').then(m => m.BinMapComponent) },
-      { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard-citizen.component').then(m => m.DashboardCitizenComponent) },
-      { path: 'report', loadComponent: () => import('./features/report/report-form.component').then(m => m.ReportFormComponent) },
-      { path: 'chat', loadComponent: () => import('./features/chat/chat.component').then(m => m.ChatComponent) },
-      { path: 'notifications', loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent) },
-      { path: 'sensibilisation', loadComponent: () => import('./features/sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent) },
-    ],
+    path: '',
+    redirectTo: '/dashboard',
+    pathMatch: 'full'
   },
-
-  // Admin (avec guard rôle admin)
   {
-    path: 'admin',
-    // canActivate: [authGuard],
-    loadComponent: () => import('./shared/components/admin-shell.component').then(m => m.AdminShellComponent),
-    children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', loadComponent: () => import('./features/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
-      { path: 'map', loadComponent: () => import('./features/admin-map/admin-map.component').then(m => m.AdminMapComponent) },
-      { path: 'bins', loadComponent: () => import('./features/admin-bins/admin-bins.component').then(m => m.AdminBinsComponent) },
-      { path: 'reports', loadComponent: () => import('./features/admin-reports/admin-reports.component').then(m => m.AdminReportsComponent) },
-      { path: 'stats', loadComponent: () => import('./features/admin-stats/admin-stats.component').then(m => m.AdminStatsComponent) },
-      { path: 'users', loadComponent: () => import('./features/admin-users/admin-users.component').then(m => m.AdminUsersComponent) },
-      { path: 'campaigns', loadComponent: () => import('./features/admin-campaigns/admin-campaigns.component').then(m => m.AdminCampaignsComponent) },
-    ],
+    path: 'onboarding',
+    loadComponent: () => import('./features/onboarding/onboarding.component').then(m => m.OnboardingComponent),
+    canActivate: [guestGuard]
   },
-
-  { path: '**', redirectTo: '/auth/login' },
+  {
+    path: 'auth',
+    children: [
+      {
+        path: 'login',
+        loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent),
+        canActivate: [guestGuard]
+      },
+      {
+        path: 'register',
+        loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent),
+        canActivate: [guestGuard]
+      },
+      {
+        path: 'forgot-password',
+        loadComponent: () => import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+      },
+      {
+        path: 'reset-password/:token',
+        loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent)
+      }
+    ]
+  },
+  {
+    path: '',
+    loadComponent: () => import('./shared/components/shell/shell.component').then(m => m.ShellComponent),
+    // canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
+        path: 'map',
+        loadComponent: () => import('./features/map/map.component').then(m => m.MapComponent)
+      },
+      {
+        path: 'reports',
+        loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent)
+      },
+      {
+        path: 'reports/new',
+        loadComponent: () => import('./features/reports/new-report/new-report.component').then(m => m.NewReportComponent)
+      },
+      {
+        path: 'reports/:id',
+        loadComponent: () => import('./features/reports/report-detail/report-detail.component').then(m => m.ReportDetailComponent)
+      },
+      {
+        path: 'chat',
+        loadComponent: () => import('./features/chat/chat.component').then(m => m.ChatComponent)
+      },
+      {
+        path: 'notifications',
+        loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent)
+      },
+      {
+        path: 'awareness',
+        loadComponent: () => import('./features/awareness/awareness.component').then(m => m.AwarenessComponent)
+      },
+      {
+        path: 'awareness/:id',
+        loadComponent: () => import('./features/awareness/article-detail/article-detail.component').then(m => m.ArticleDetailComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+      }
+    ]
+  },
+  {
+    path: '**',
+    redirectTo: '/dashboard'
+  }
 ];

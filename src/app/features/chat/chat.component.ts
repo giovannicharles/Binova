@@ -1,269 +1,330 @@
-/**
- * BINOVA — Smart Waste Management
- * Fichier : src/app/features/chat/chat.component.ts
- * Auteur  : SGAO-SARL © 2026
- * Rôle    : Chat citoyen ↔ admin, bulles WhatsApp-style, typing indicator, upload image
- */
-
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ApiService } from '../../core/services/api.service';
-import { AuthService } from '../../core/services/auth.service';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { SocketService } from '../../core/services/socket.service';
-import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
-
-interface Message {
-  id: string; sender_id: string; room_id: string; content: string;
-  type: string; createdAt: string; sender?: { name: string; avatar_url?: string };
-}
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
-<div class="chat-wrap">
-  <!-- Header -->
-  <div class="chat-header">
-    <div class="chat-avatar">🛡️</div>
-    <div>
-      <h3>Support BINOVA</h3>
-      <span class="online-dot"></span><span class="online-txt">En ligne</span>
-    </div>
-  </div>
-
-  <!-- Messages -->
-  <div class="messages-wrap" #messagesEl>
-    <div class="messages-list">
-      <!-- Chargement initial -->
-      <div *ngIf="loading()" class="loading-msgs">
-        <div class="skeleton skeleton-card" *ngFor="let _ of [1,2,3]"></div>
+    <div class="chat-page">
+      <!-- Header -->
+      <div class="chat-header">
+        <button class="back-btn" routerLink="/dashboard">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="chat-info">
+          <div class="chat-avatar">🌿</div>
+          <div>
+            <h2>Support BINOVA</h2>
+            <span class="online-status">
+              <span class="status-dot"></span>
+              {{ typingUser() ? typingUser() + ' écrit...' : 'En ligne' }}
+            </span>
+          </div>
+        </div>
       </div>
 
       <!-- Messages -->
-      <div class="msg-item" *ngFor="let m of messages(); trackBy: trackMsg"
-           [class.mine]="m.sender_id === currentUserId()"
-           [class.theirs]="m.sender_id !== currentUserId()">
-        <!-- Avatar (messages reçus) -->
-        <div class="msg-avatar" *ngIf="m.sender_id !== currentUserId()">
-          {{ m.sender?.name?.[0] || 'S' }}
-        </div>
-        <div class="msg-bubble-wrap">
-          <!-- Nom expéditeur (messages reçus) -->
-          <span class="msg-sender" *ngIf="m.sender_id !== currentUserId()">
-            {{ m.sender?.name }}
-          </span>
-          <!-- Bulle message -->
-          <div class="msg-bubble">
-            <img *ngIf="m.type === 'image'" [src]="m.content" class="msg-img" alt="image">
-            <p *ngIf="m.type !== 'image'">{{ m.content }}</p>
+      <div class="messages-area" #messagesArea>
+        @if (loading()) {
+          <div class="loading-messages">
+            @for (s of [1,2,3,4]; track s) {
+              <div class="shimmer msg-skeleton" [class.right]="s % 2 === 0"></div>
+            }
           </div>
-          <span class="msg-time">{{ m.createdAt | date:'HH:mm' }}</span>
-        </div>
+        }
+
+        @for (msg of messages(); track msg._id) {
+          <div class="msg-wrap" [class.mine]="isMine(msg)">
+            @if (!isMine(msg)) {
+              <div class="msg-avatar">{{ msg.sender?.name?.charAt(0) }}</div>
+            }
+            <div class="msg-bubble" [class.mine]="isMine(msg)">
+              @if (!isMine(msg)) {
+                <span class="msg-sender">{{ msg.sender?.name }}</span>
+              }
+              @if (msg.type === 'image' && msg.imageUrl) {
+                <img [src]="msg.imageUrl" class="msg-image" alt="Image">
+              }
+              @if (msg.content) {
+                <p class="msg-text">{{ msg.content }}</p>
+              }
+              <span class="msg-time">{{ formatTime(msg.createdAt) }}</span>
+            </div>
+          </div>
+        } @empty {
+          @if (!loading()) {
+            <div class="empty-chat">
+              <span>💬</span>
+              <p>Aucun message. Commencez la conversation !</p>
+            </div>
+          }
+        }
       </div>
 
-      <!-- Typing indicator -->
-      <div class="typing-indicator" *ngIf="isTyping()">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
+      <!-- Input area -->
+      <div class="chat-input-area">
+        <button class="attach-btn" (click)="triggerImageUpload()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </button>
+        <input #imageInput type="file" accept="image/*" hidden (change)="sendImage($event)">
+
+        <div class="msg-input-wrap">
+          <input class="msg-input" type="text" [(ngModel)]="messageText"
+                 placeholder="Écrire un message..."
+                 (keyup)="onTyping()"
+                 (keyup.enter)="sendMessage()">
+        </div>
+
+        <button class="send-btn" [disabled]="!messageText.trim() && !imageFile"
+                (click)="sendMessage()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
       </div>
     </div>
-  </div>
-
-  <!-- Barre de saisie -->
-  <div class="chat-input-bar">
-    <button type="button" class="attach-btn" (click)="photoInput.click()" title="Envoyer une photo">📷</button>
-    <input #photoInput type="file" accept="image/*" style="display:none" (change)="sendPhoto($event)">
-    <form [formGroup]="msgForm" (ngSubmit)="sendMsg()" class="msg-form">
-      <input formControlName="content" type="text" class="msg-input"
-             placeholder="Écrire un message..."
-             (input)="onTyping()" (keydown.enter)="sendMsg()">
-      <button type="submit" class="send-btn" [disabled]="msgForm.invalid || sending()">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </button>
-    </form>
-  </div>
-</div>
   `,
   styles: [`
-    .chat-wrap {
-      display: flex; flex-direction: column; height: 100vh;
-      background: #f0faf0;
+    .chat-page {
+      height: 100dvh; display: flex; flex-direction: column; background: var(--bg-soft);
     }
+
     .chat-header {
-      display: flex; align-items: center; gap: 1rem;
-      padding: 1rem 1.25rem; background: #2D7D2D; color: white;
-      box-shadow: 0 2px 8px rgba(45,125,45,0.3);
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: #fff; position: sticky; top: 0; z-index: 100;
     }
+
+    .back-btn {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: rgba(255,255,255,0.2); border: none; color: #fff;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+
+    .chat-info { display: flex; align-items: center; gap: 10px; }
+
     .chat-avatar {
-      width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.2);
-      display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
     }
-    h3 { margin: 0; font-size: 1rem; }
-    .online-dot {
-      display: inline-block; width: 8px; height: 8px; background: #F5C100;
-      border-radius: 50%; margin-right: 0.25rem;
+
+    .chat-info h2 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+
+    .online-status {
+      font-size: 12px; opacity: 0.9;
+      display: flex; align-items: center; gap: 5px;
     }
-    .online-txt { font-size: 0.75rem; opacity: 0.8; }
 
-    .messages-wrap { flex: 1; overflow-y: auto; padding: 1rem; }
-    .messages-list { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; justify-content: flex-end; }
-    .loading-msgs { display: flex; flex-direction: column; gap: 0.5rem; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #4ADE80;
+      animation: pulse-green 2s infinite;
+    }
 
-    .msg-item {
-      display: flex; align-items: flex-end; gap: 0.5rem;
-      animation: slideUp 0.25s ease both;
+    .messages-area {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .loading-messages { display: flex; flex-direction: column; gap: 12px; }
+
+    .msg-skeleton {
+      height: 48px; border-radius: 16px; max-width: 65%;
+      &.right { align-self: flex-end; }
+    }
+
+    .msg-wrap {
+      display: flex; align-items: flex-end; gap: 8px;
+      animation: slide-up 0.25s ease;
+
       &.mine { flex-direction: row-reverse; }
-      &.theirs { flex-direction: row; }
     }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     .msg-avatar {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: #1A3A6B; color: white; display: flex; align-items: center;
-      justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: #fff; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-    .msg-bubble-wrap { display: flex; flex-direction: column; max-width: 75%; }
-    .msg-sender { font-size: 0.7rem; color: #666; margin-bottom: 0.15rem; padding-left: 0.5rem; }
 
     .msg-bubble {
-      padding: 0.65rem 0.9rem; border-radius: 18px; word-break: break-word;
-      .mine & {
-        background: #2D7D2D; color: white;
-        border-bottom-right-radius: 4px;
-        p { margin: 0; font-size: 0.9rem; }
-      }
-      .theirs & {
-        background: white; color: #1A1A1A;
-        border-bottom-left-radius: 4px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        p { margin: 0; font-size: 0.9rem; }
+      max-width: 72%; padding: 10px 14px;
+      background: var(--bg); border-radius: 18px 18px 18px 4px;
+      box-shadow: var(--shadow-sm);
+
+      &.mine {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: #fff;
+        border-radius: 18px 18px 4px 18px;
       }
     }
-    .msg-img { max-width: 200px; border-radius: 10px; display: block; }
-    .msg-time { font-size: 0.65rem; color: #999; padding: 0 0.25rem; margin-top: 0.15rem; }
-    .mine .msg-time { text-align: right; }
 
-    .typing-indicator {
-      display: flex; align-items: center; gap: 4px; padding: 0.65rem 0.9rem;
-      background: white; border-radius: 18px; border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08); width: 60px;
-    }
-    .typing-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: #95A5A6;
-      animation: typingBounce 1.2s infinite;
-      &:nth-child(2) { animation-delay: 0.2s; }
-      &:nth-child(3) { animation-delay: 0.4s; }
-    }
-    @keyframes typingBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    .msg-sender { font-size: 11px; font-weight: 700; color: var(--primary); display: block; margin-bottom: 4px; }
+    .msg-bubble.mine .msg-sender { color: rgba(255,255,255,0.8); }
 
-    .chat-input-bar {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1rem; background: white;
-      box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    .msg-text { font-size: 14px; line-height: 1.6; word-break: break-word; }
+
+    .msg-image { width: 100%; border-radius: 10px; max-width: 220px; display: block; margin-bottom: 6px; }
+
+    .msg-time { font-size: 10px; color: var(--text-light); display: block; text-align: right; margin-top: 4px; }
+    .msg-bubble.mine .msg-time { color: rgba(255,255,255,0.7); }
+
+    .empty-chat { text-align: center; margin: auto; span { font-size: 48px; display: block; margin-bottom: 12px; } p { color: var(--text-muted); font-size: 14px; } }
+
+    .chat-input-area {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      background: var(--bg); border-top: 1px solid var(--border-light);
+      position: sticky; bottom: 0;
     }
+
     .attach-btn {
-      background: none; border: none; font-size: 1.25rem; cursor: pointer;
-      width: 40px; height: 40px; border-radius: 50%; display: flex;
-      align-items: center; justify-content: center; transition: background 0.2s;
-      &:hover { background: #f0faf0; }
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--bg-soft); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); transition: all var(--transition); flex-shrink: 0;
+      &:hover { background: var(--primary-50); color: var(--primary); }
     }
-    .msg-form { flex: 1; display: flex; gap: 0.5rem; }
+
+    .msg-input-wrap { flex: 1; }
+
     .msg-input {
-      flex: 1; padding: 0.65rem 1rem; border: 1.5px solid #dde8dd;
-      border-radius: 24px; font-size: 0.9rem; outline: none; background: #f8fdf8;
-      &:focus { border-color: #2D7D2D; background: white; }
+      width: 100%; padding: 12px 16px;
+      background: var(--bg-soft); border: 2px solid var(--border);
+      border-radius: 24px; font-size: 14px; color: var(--text);
+      outline: none; transition: border-color 0.2s;
+      &:focus { border-color: var(--primary); }
     }
+
     .send-btn {
-      width: 42px; height: 42px; border-radius: 50%; background: #2D7D2D; color: white;
-      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s; flex-shrink: 0;
-      &:hover { background: #245e24; transform: scale(1.05); }
-      &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border: none; cursor: pointer; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-green); transition: all var(--transition); flex-shrink: 0;
+      &:hover { transform: scale(1.05); }
+      &:active { transform: scale(0.95); }
+      &:disabled { opacity: 0.4; transform: none; }
     }
   `]
 })
-export class ChatComponent implements OnInit, OnDestroy {
-  @ViewChild('messagesEl') private messagesEl!: ElementRef;
-  private api = inject(ApiService);
-  private auth = inject(AuthService);
-  private socket = inject(SocketService);
-  private fb = inject(FormBuilder);
-  private toast = inject(ToastService);
+export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('messagesArea') messagesArea!: ElementRef;
 
-  messages = signal<Message[]>([]);
+  messages = signal<any[]>([]);
   loading = signal(true);
-  sending = signal(false);
-  isTyping = signal(false);
+  typingUser = signal('');
+  messageText = '';
+  imageFile: File | null = null;
+  private roomId = 'support-general';
   private typingTimeout: any;
   private subs: Subscription[] = [];
 
-  readonly currentUserId = () => this.auth.user()?.id;
-  readonly roomId = 'support-' + (this.auth.user()?.id || 'anon');
+  constructor(
+    private http: HttpClient,
+    private socketService: SocketService,
+    private authService: AuthService
+  ) {}
 
-  msgForm = this.fb.group({ content: ['', [Validators.required, Validators.maxLength(5000)]] });
+  ngOnInit() {
+    this.socketService.connect();
+    this.socketService.joinRoom(this.roomId);
+    this.loadMessages();
 
-  ngOnInit(): void {
-    this.api.get(`/messages/${this.roomId}`).subscribe({
-      next: (res: any) => { this.messages.set(res.data || []); this.loading.set(false); this.scrollBottom(); },
-      error: () => this.loading.set(false),
+    this.subs.push(
+      this.socketService.on<any>('message:new').subscribe(({ message }) => {
+        this.messages.update(m => [...m, message]);
+      }),
+      this.socketService.on<any>('message:typing').subscribe(({ name, isTyping }) => {
+        this.typingUser.set(isTyping ? name : '');
+        if (isTyping) {
+          clearTimeout(this.typingTimeout);
+          this.typingTimeout = setTimeout(() => this.typingUser.set(''), 3000);
+        }
+      })
+    );
+  }
+
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
+
+  ngOnDestroy() {
+    this.socketService.leaveRoom(this.roomId);
+    this.subs.forEach(s => s.unsubscribe());
+  }
+
+  loadMessages() {
+    this.http.get(`${environment.apiUrl}/messages/${this.roomId}`).subscribe({
+      next: (res: any) => { this.messages.set(res.data || []); this.loading.set(false); },
+      error: () => this.loading.set(false)
     });
-    this.socket.connect();
-    this.socket.joinRoom(this.roomId);
-    const sub = this.socket.messageNew.subscribe((msg: Message) => {
-      if (msg.room_id === this.roomId) {
-        this.messages.update(m => [...m, msg]);
-        this.isTyping.set(false);
-        setTimeout(() => this.scrollBottom(), 50);
+  }
+
+  sendMessage() {
+    if (!this.messageText.trim() && !this.imageFile) return;
+
+    const fd = new FormData();
+    fd.append('room', this.roomId);
+    if (this.messageText.trim()) fd.append('content', this.messageText);
+    if (this.imageFile) fd.append('image', this.imageFile);
+
+    this.http.post(`${environment.apiUrl}/messages`, fd).subscribe({
+      next: () => {
+        this.messageText = '';
+        this.imageFile = null;
       }
     });
-    this.subs.push(sub);
+
+    this.socketService.typing(this.roomId, false);
   }
 
-  sendMsg(): void {
-    const content = this.msgForm.get('content')?.value?.trim();
-    if (!content || this.sending()) return;
-    this.sending.set(true);
-    this.api.post('/messages', { room_id: this.roomId, content, type: 'text' }).subscribe({
-      next: (res: any) => {
-        this.messages.update(m => [...m, res.data]);
-        this.msgForm.reset();
-        this.sending.set(false);
-        setTimeout(() => this.scrollBottom(), 50);
-      },
-      error: () => this.sending.set(false),
-    });
-  }
-
-  sendPhoto(e: Event): void {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('image', file);
-    this.api.upload('/messages/upload', fd).subscribe({
-      next: (res: any) => {
-        this.api.post('/messages', { room_id: this.roomId, content: res.data.url, type: 'image' }).subscribe();
-      },
-      error: () => this.toast.error('Erreur upload photo'),
-    });
-  }
-
-  onTyping(): void {
+  onTyping() {
+    this.socketService.typing(this.roomId, true);
     clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => { }, 2000);
+    this.typingTimeout = setTimeout(() => this.socketService.typing(this.roomId, false), 2000);
   }
 
-  trackMsg(_: number, m: Message) { return m.id; }
-
-  private scrollBottom(): void {
-    const el = this.messagesEl?.nativeElement;
-    if (el) el.scrollTop = el.scrollHeight;
+  triggerImageUpload() {
+    document.querySelector<HTMLInputElement>('input[type=file]')?.click();
   }
 
-  ngOnDestroy(): void { this.subs.forEach(s => s.unsubscribe()); }
+  sendImage(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.imageFile = file;
+    this.sendMessage();
+  }
+
+  isMine(msg: any): boolean {
+    return msg.sender?._id === this.authService.currentUser?._id;
+  }
+
+  formatTime(date: string): string {
+    return new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  scrollToBottom() {
+    try {
+      const el = this.messagesArea?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    } catch {}
+  }
 }
