@@ -13,9 +13,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       <!-- Header -->
       <div class="reg-header">
         <button class="back-btn" routerLink="/auth/login">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
+          <i class="ri-arrow-left-line" style="font-size: 20px;"></i>
         </button>
         <div class="header-text">
           <h1>Créer un compte</h1>
@@ -37,9 +35,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       <div class="reg-form">
         @if (error()) {
           <div class="alert-error animate-pop-in">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
+            <i class="ri-error-warning-line" style="font-size: 16px;"></i>
             {{ error() }}
           </div>
         }
@@ -50,9 +46,7 @@ import { AuthService } from '../../../core/auth/auth.service';
               <label>Nom complet *</label>
               <div class="input-group">
                 <span class="input-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                  </svg>
+                  <i class="ri-user-line" style="font-size: 18px;"></i>
                 </span>
                 <input class="form-control" type="text" [(ngModel)]="form.name" placeholder="Jean Dupont">
               </div>
@@ -61,7 +55,9 @@ import { AuthService } from '../../../core/auth/auth.service';
             <div class="form-group">
               <label>Numéro CNI *</label>
               <div class="input-group">
-                <span class="input-icon">🪪</span>
+                <span class="input-icon">
+                  <i class="ri-id-card-line" style="font-size: 18px;"></i>
+                </span>
                 <input class="form-control" type="text" [(ngModel)]="form.cni"
                        placeholder="CM-XXXXXXXXX" style="text-transform: uppercase">
               </div>
@@ -70,7 +66,9 @@ import { AuthService } from '../../../core/auth/auth.service';
             <div class="form-group">
               <label>Téléphone *</label>
               <div class="input-group">
-                <span class="input-icon">📱</span>
+                <span class="input-icon">
+                  <i class="ri-phone-line" style="font-size: 18px;"></i>
+                </span>
                 <input class="form-control" type="tel" [(ngModel)]="form.phone"
                        placeholder="+237 6XX XXX XXX">
               </div>
@@ -79,7 +77,9 @@ import { AuthService } from '../../../core/auth/auth.service';
             <div class="form-group">
               <label>Email *</label>
               <div class="input-group">
-                <span class="input-icon">✉️</span>
+                <span class="input-icon">
+                  <i class="ri-mail-line" style="font-size: 18px;"></i>
+                </span>
                 <input class="form-control" type="email" [(ngModel)]="form.email"
                        placeholder="email@exemple.cm">
               </div>
@@ -88,7 +88,9 @@ import { AuthService } from '../../../core/auth/auth.service';
             <div class="form-group">
               <label>Quartier / Zone *</label>
               <div class="input-group">
-                <span class="input-icon">📍</span>
+                <span class="input-icon">
+                  <i class="ri-map-pin-line" style="font-size: 18px;"></i>
+                </span>
                 <select class="form-control" [(ngModel)]="form.zone">
                   <option value="">Sélectionner votre quartier</option>
                   @for (z of zones; track z) {
@@ -101,9 +103,7 @@ import { AuthService } from '../../../core/auth/auth.service';
             <button class="btn btn-primary btn-full" (click)="nextStep()"
                     [disabled]="!form.name || !form.cni || !form.phone || !form.email || !form.zone">
               Continuer
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
+              <i class="ri-arrow-right-line" style="font-size: 18px;"></i>
             </button>
           </div>
         }
@@ -113,11 +113,17 @@ import { AuthService } from '../../../core/auth/auth.service';
             <div class="form-group">
               <label>Mot de passe *</label>
               <div class="input-group">
-                <span class="input-icon">🔐</span>
+                <span class="input-icon">
+                  <i class="ri-lock-line" style="font-size: 18px;"></i>
+                </span>
                 <input class="form-control" [type]="showPwd() ? 'text' : 'password'"
                        [(ngModel)]="form.password" placeholder="Minimum 8 caractères">
                 <button type="button" class="input-suffix" (click)="toggleShowPwd()">
-                  {{ showPwd() ? '🙈' : '👁️' }}
+                  @if (showPwd()) {
+                    <i class="ri-eye-off-line" style="font-size: 18px;"></i>
+                  } @else {
+                    <i class="ri-eye-line" style="font-size: 18px;"></i>
+                  }
                 </button>
               </div>
               <!-- Password strength -->
@@ -134,12 +140,17 @@ import { AuthService } from '../../../core/auth/auth.service';
             <div class="form-group">
               <label>Confirmer le mot de passe *</label>
               <div class="input-group">
-                <span class="input-icon">🔒</span>
+                <span class="input-icon">
+                  <i class="ri-lock-2-line" style="font-size: 18px;"></i>
+                </span>
                 <input class="form-control" [type]="showPwd() ? 'text' : 'password'"
                        [(ngModel)]="form.confirmPassword" placeholder="Répéter le mot de passe">
               </div>
               @if (form.confirmPassword && form.password !== form.confirmPassword) {
-                <p class="error-msg">❌ Les mots de passe ne correspondent pas</p>
+                <p class="error-msg">
+                  <i class="ri-close-circle-line" style="font-size: 14px;"></i>
+                  Les mots de passe ne correspondent pas
+                </p>
               }
             </div>
 
@@ -351,7 +362,7 @@ export class RegisterComponent {
     'Nkomo', 'Obili', 'Etoa-Meki', 'Messa', 'Damas'
   ];
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) { }
 
   toggleShowPwd() {
     this.showPwd.update(v => !v);

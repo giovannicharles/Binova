@@ -46,13 +46,12 @@ interface Slide {
         @if (current() < slides.length - 1) {
           <button class="btn-next" (click)="next()">
             Suivant
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
+            <i class="ri-arrow-right-line" style="font-size: 20px;"></i>
           </button>
         } @else {
           <button class="btn-start" (click)="goToRegister()">
-            Commencer maintenant 🌿
+            Commencer maintenant
+            <i class="ri-leaf-line" style="font-size: 18px;"></i>
           </button>
           <button class="btn-login" (click)="goToLogin()">
             J'ai déjà un compte

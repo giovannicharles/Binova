@@ -19,7 +19,9 @@ import { ReportService } from '../../core/services/api.services';
       } @else {
         @for (report of reports(); track report._id) {
           <a class="report-card animate-slide-up" [routerLink]="'/reports/' + report._id">
-            <div class="report-icon">{{ categoryIcon(report.category) }}</div>
+            <div class="report-icon">
+              <i [class]="categoryIcon(report.category)" style="font-size: 28px;"></i>
+            </div>
             <div class="report-info">
               <h4>{{ report.title }}</h4>
               <p>{{ report.zone }} · {{ formatDate(report.createdAt) }}</p>
@@ -28,13 +30,11 @@ import { ReportService } from '../../core/services/api.services';
                 <span class="badge" [ngClass]="statusClass(report.status)">{{ statusLabel(report.status) }}</span>
               </div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
+            <i class="ri-arrow-right-line" style="font-size: 16px; color: var(--text-light);"></i>
           </a>
         } @empty {
           <div class="empty-state">
-            <span>📋</span>
+            <i class="ri-clipboard-line" style="font-size: 56px;"></i>
             <p>Aucun signalement. <a routerLink="/reports/new">Créer le premier</a></p>
           </div>
         }
@@ -53,17 +53,25 @@ export class ReportsComponent implements OnInit {
   reports = signal<any[]>([]);
   loading = signal(true);
 
-  constructor(private reportService: ReportService) {}
+  constructor(private reportService: ReportService) { }
 
   ngOnInit() {
     this.reportService.getReports().subscribe({
       next: (res) => { this.reports.set(res.data || []); this.loading.set(false); },
-      error: () => this.loading.set(false)
+      error: () => {
+        // Mock data fallback for demo
+        this.reports.set([
+          { _id: '1', title: 'Débordement bac central', category: 'overflow', zone: 'Bastos', priority: 'high', status: 'pending', createdAt: new Date().toISOString() },
+          { _id: '2', title: 'Dépôt sauvage rue 12', category: 'illegal_dump', zone: 'Mvan', priority: 'medium', status: 'in_progress', createdAt: new Date(Date.now() - 86400000).toISOString() },
+          { _id: '3', title: 'Odeur nauséabonde', category: 'odor', zone: 'Bastos', priority: 'low', status: 'resolved', createdAt: new Date(Date.now() - 172800000).toISOString() }
+        ]);
+        this.loading.set(false);
+      }
     });
   }
 
   categoryIcon(cat: string): string {
-    return { overflow: '🗑️', damage: '🔨', illegal_dump: '🚯', odor: '😷', pest: '🐀', other: '❓' }[cat] || '📋';
+    return { overflow: 'ri-delete-bin-line', damage: 'ri-hammer-line', illegal_dump: 'ri-landscape-line', odor: 'ri-mask-line', pest: 'ri-bug-line', other: 'ri-question-line' }[cat] || 'ri-clipboard-line';
   }
 
   priorityClass(p: string): string {

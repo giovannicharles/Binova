@@ -13,9 +13,7 @@ import { ReportService } from 'src/app/core/services/api.services';
       <!-- Header -->
       <div class="report-header">
         <button class="back-btn" routerLink="/reports">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
+          <i class="ri-arrow-left-line" style="font-size: 20px;"></i>
         </button>
         <h1>Nouveau signalement</h1>
       </div>
@@ -31,11 +29,13 @@ import { ReportService } from 'src/app/core/services/api.services';
         @if (success()) {
           <!-- Success state -->
           <div class="success-state animate-pop-in">
-            <div class="success-icon">🎉</div>
+            <div class="success-icon">
+              <i class="ri-checkbox-circle-line" style="font-size: 64px;"></i>
+            </div>
             <h2>Signalement envoyé !</h2>
             <p>Merci pour votre contribution. Votre signalement a bien été reçu.</p>
             <div class="points-earned animate-slide-up">
-              <span>⭐ +50 points gagnés !</span>
+              <i class="ri-star-line" style="font-size: 20px;"></i> +50 points gagnés !
             </div>
             <button class="btn btn-primary btn-full" style="margin-top: 32px" routerLink="/dashboard">
               Retour à l'accueil
@@ -57,7 +57,7 @@ import { ReportService } from 'src/app/core/services/api.services';
                 @for (cat of categories; track cat.value) {
                   <button class="cat-btn" [class.selected]="form.category === cat.value"
                           (click)="form.category = cat.value">
-                    <span class="cat-icon">{{ cat.icon }}</span>
+                    <i [class]="cat.icon" class="cat-icon" style="font-size: 28px;"></i>
                     <span>{{ cat.label }}</span>
                   </button>
                 }
@@ -84,7 +84,8 @@ import { ReportService } from 'src/app/core/services/api.services';
                             [style.borderColor]="form.priority === p.value ? p.color : ''"
                             [style.background]="form.priority === p.value ? p.bg : ''"
                             (click)="form.priority = p.value">
-                      {{ p.icon }} {{ p.label }}
+                      <i [class]="p.icon" style="font-size: 18px; margin-right: 6px;"></i>
+                      {{ p.label }}
                     </button>
                   }
                 </div>
@@ -197,7 +198,7 @@ import { ReportService } from 'src/app/core/services/api.services';
               </div>
 
               <div class="points-preview">
-                <span>⭐</span>
+                <i class="ri-star-line" style="font-size: 24px;"></i>
                 <div>
                   <strong>+50 points</strong>
                   <p>seront ajoutés à votre compte</p>
@@ -208,7 +209,8 @@ import { ReportService } from 'src/app/core/services/api.services';
                 <button class="btn btn-outline" (click)="step.set(2)">← Retour</button>
                 <button class="btn btn-primary" (click)="submit()" [disabled]="loading()">
                   @if (loading()) { <span class="spinner-sm"></span> }
-                  Envoyer 🌿
+                  Envoyer
+                  <i class="ri-leaf-line" style="font-size: 18px;"></i>
                 </button>
               </div>
             </div>
@@ -394,22 +396,22 @@ export class NewReportComponent implements OnInit {
   };
 
   categories = [
-    { value: 'overflow', label: 'Débordement', icon: '🗑️' },
-    { value: 'damage', label: 'Dégradation', icon: '🔨' },
-    { value: 'illegal_dump', label: 'Dépôt sauvage', icon: '🚯' },
-    { value: 'odor', label: 'Odeur', icon: '😷' },
-    { value: 'pest', label: 'Nuisibles', icon: '🐀' },
-    { value: 'other', label: 'Autre', icon: '❓' }
+    { value: 'overflow', label: 'Débordement', icon: 'ri-delete-bin-line' },
+    { value: 'damage', label: 'Dégradation', icon: 'ri-hammer-line' },
+    { value: 'illegal_dump', label: 'Dépôt sauvage', icon: 'ri-landscape-line' },
+    { value: 'odor', label: 'Odeur', icon: 'ri-mask-line' },
+    { value: 'pest', label: 'Nuisibles', icon: 'ri-bug-line' },
+    { value: 'other', label: 'Autre', icon: 'ri-question-line' }
   ];
 
   priorities = [
-    { value: 'low', label: 'Faible', icon: '🟢', color: '#16A34A', bg: '#DCFCE7' },
-    { value: 'medium', label: 'Normale', icon: '🟡', color: '#D97706', bg: '#FEF3C7' },
-    { value: 'high', label: 'Urgent', icon: '🟠', color: '#EA580C', bg: '#FEE2E2' },
-    { value: 'critical', label: 'Critique', icon: '🔴', color: '#DC2626', bg: '#FEE2E2' }
+    { value: 'low', label: 'Faible', icon: 'ri-checkbox-blank-circle-line', color: '#16A34A', bg: '#DCFCE7' },
+    { value: 'medium', label: 'Normale', icon: 'ri-checkbox-blank-circle-line', color: '#D97706', bg: '#FEF3C7' },
+    { value: 'high', label: 'Urgent', icon: 'ri-checkbox-blank-circle-line', color: '#EA580C', bg: '#FEE2E2' },
+    { value: 'critical', label: 'Critique', icon: 'ri-checkbox-blank-circle-line', color: '#DC2626', bg: '#FEE2E2' }
   ];
 
-  constructor(private reportService: ReportService, private router: Router) {}
+  constructor(private reportService: ReportService, private router: Router) { }
 
   ngOnInit() { this.getLocation(); }
 

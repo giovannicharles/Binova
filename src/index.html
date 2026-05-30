@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="fr">
+
 <head>
   <meta charset="utf-8">
   <title>BINOVA - Gestion Intelligente des Déchets</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="BINOVA - Plateforme de gestion intelligente des déchets urbains. SGAO-SARL, Yaoundé, Cameroun.">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="description"
+    content="BINOVA - Plateforme de gestion intelligente des déchets urbains. SGAO-SARL, Yaoundé, Cameroun.">
   <meta name="theme-color" content="#2C7A3E">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,45 +18,94 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Remix Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
       background: #F8FAFC;
       color: #1E293B;
       -webkit-font-smoothing: antialiased;
     }
+
     /* Splash screen initial */
     #app-splash {
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background: linear-gradient(135deg, #2C7A3E 0%, #16A34A 60%, #00D2FF 100%);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       z-index: 99999;
       transition: opacity 0.5s ease;
     }
-    #app-splash.hidden { opacity: 0; pointer-events: none; }
-    #app-splash svg { width: 80px; height: 80px; animation: pulse-logo 1.5s infinite; }
-    #app-splash h1 { color: #fff; font-size: 32px; font-weight: 800; margin: 16px 0 4px; letter-spacing: 3px; }
-    #app-splash p { color: rgba(255,255,255,0.8); font-size: 13px; }
+
+    #app-splash.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #app-splash svg {
+      width: 80px;
+      height: 80px;
+      animation: pulse-logo 1.5s infinite;
+    }
+
+    #app-splash h1 {
+      color: #fff;
+      font-size: 32px;
+      font-weight: 800;
+      margin: 16px 0 4px;
+      letter-spacing: 3px;
+    }
+
+    #app-splash p {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+    }
+
     @keyframes pulse-logo {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.08); opacity: 0.9; }
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: 0.9;
+      }
     }
   </style>
 </head>
+
 <body>
   <!-- Splash Screen -->
   <div id="app-splash">
     <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="40" cy="40" r="36" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-      <path d="M40 20 C40 20 24 30 24 44 C24 52.8 31.2 60 40 60 C48.8 60 56 52.8 56 44 C56 30 40 20 40 20Z" fill="white" opacity="0.9"/>
-      <path d="M32 50 L40 38 L48 50" stroke="#2C7A3E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="40" cy="36" r="3" fill="#2C7A3E"/>
+      <circle cx="40" cy="40" r="36" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" stroke-width="2" />
+      <path d="M40 20 C40 20 24 30 24 44 C24 52.8 31.2 60 40 60 C48.8 60 56 52.8 56 44 C56 30 40 20 40 20Z" fill="white"
+        opacity="0.9" />
+      <path d="M32 50 L40 38 L48 50" stroke="#2C7A3E" stroke-width="2.5" stroke-linecap="round"
+        stroke-linejoin="round" />
+      <circle cx="40" cy="36" r="3" fill="#2C7A3E" />
     </svg>
     <h1>BINOVA</h1>
     <p>Une vie plus saine, pour un avenir durable</p>
@@ -70,4 +122,5 @@
     });
   </script>
 </body>
+
 </html>

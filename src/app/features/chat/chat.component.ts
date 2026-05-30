@@ -2,10 +2,7 @@ import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef, AfterViewC
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { SocketService } from '../../core/services/socket.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -17,17 +14,17 @@ import { Subscription } from 'rxjs';
       <!-- Header -->
       <div class="chat-header">
         <button class="back-btn" routerLink="/dashboard">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
+          <i class="ri-arrow-left-line" style="font-size: 20px;"></i>
         </button>
         <div class="chat-info">
-          <div class="chat-avatar">🌿</div>
+          <div class="chat-avatar">
+            <i class="ri-leaf-line" style="font-size: 24px;"></i>
+          </div>
           <div>
             <h2>Support BINOVA</h2>
             <span class="online-status">
               <span class="status-dot"></span>
-              {{ typingUser() ? typingUser() + ' écrit...' : 'En ligne' }}
+              En ligne
             </span>
           </div>
         </div>
@@ -64,7 +61,7 @@ import { Subscription } from 'rxjs';
         } @empty {
           @if (!loading()) {
             <div class="empty-chat">
-              <span>💬</span>
+              <i class="ri-chat-3-line" style="font-size: 48px;"></i>
               <p>Aucun message. Commencez la conversation !</p>
             </div>
           }
@@ -74,25 +71,19 @@ import { Subscription } from 'rxjs';
       <!-- Input area -->
       <div class="chat-input-area">
         <button class="attach-btn" (click)="triggerImageUpload()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-          </svg>
+          <i class="ri-image-add-line" style="font-size: 20px;"></i>
         </button>
         <input #imageInput type="file" accept="image/*" hidden (change)="sendImage($event)">
 
         <div class="msg-input-wrap">
           <input class="msg-input" type="text" [(ngModel)]="messageText"
                  placeholder="Écrire un message..."
-                 (keyup)="onTyping()"
                  (keyup.enter)="sendMessage()">
         </div>
 
         <button class="send-btn" [disabled]="!messageText.trim() && !imageFile"
                 (click)="sendMessage()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
+          <i class="ri-send-plane-fill" style="font-size: 20px;"></i>
         </button>
       </div>
     </div>
@@ -105,7 +96,7 @@ import { Subscription } from 'rxjs';
     .chat-header {
       display: flex; align-items: center; gap: 12px;
       padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      background: var(--primary);
       color: #fff; position: sticky; top: 0; z-index: 100;
     }
 
@@ -158,7 +149,7 @@ import { Subscription } from 'rxjs';
 
     .msg-avatar {
       width: 32px; height: 32px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      background: var(--primary);
       color: #fff; font-size: 13px; font-weight: 700;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
@@ -170,7 +161,7 @@ import { Subscription } from 'rxjs';
       box-shadow: var(--shadow-sm);
 
       &.mine {
-        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        background: var(--primary);
         color: #fff;
         border-radius: 18px 18px 4px 18px;
       }
@@ -215,7 +206,7 @@ import { Subscription } from 'rxjs';
 
     .send-btn {
       width: 44px; height: 44px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      background: var(--primary);
       border: none; cursor: pointer; color: #fff;
       display: flex; align-items: center; justify-content: center;
       box-shadow: var(--shadow-green); transition: all var(--transition); flex-shrink: 0;
@@ -230,36 +221,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   messages = signal<any[]>([]);
   loading = signal(true);
-  typingUser = signal('');
   messageText = '';
   imageFile: File | null = null;
   private roomId = 'support-general';
-  private typingTimeout: any;
-  private subs: Subscription[] = [];
+  private storageKey = 'binova_chat_messages';
 
   constructor(
-    private http: HttpClient,
-    private socketService: SocketService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit() {
-    this.socketService.connect();
-    this.socketService.joinRoom(this.roomId);
     this.loadMessages();
-
-    this.subs.push(
-      this.socketService.on<any>('message:new').subscribe(({ message }) => {
-        this.messages.update(m => [...m, message]);
-      }),
-      this.socketService.on<any>('message:typing').subscribe(({ name, isTyping }) => {
-        this.typingUser.set(isTyping ? name : '');
-        if (isTyping) {
-          clearTimeout(this.typingTimeout);
-          this.typingTimeout = setTimeout(() => this.typingUser.set(''), 3000);
-        }
-      })
-    );
   }
 
   ngAfterViewChecked() {
@@ -267,39 +239,75 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy() {
-    this.socketService.leaveRoom(this.roomId);
-    this.subs.forEach(s => s.unsubscribe());
+    this.saveMessages();
   }
 
   loadMessages() {
-    this.http.get(`${environment.apiUrl}/messages/${this.roomId}`).subscribe({
-      next: (res: any) => { this.messages.set(res.data || []); this.loading.set(false); },
-      error: () => this.loading.set(false)
-    });
+    const stored = localStorage.getItem(this.storageKey);
+    if (stored) {
+      this.messages.set(JSON.parse(stored));
+    } else {
+      // Initial welcome message
+      this.messages.set([{
+        _id: '1',
+        content: 'Bonjour ! Comment puis-je vous aider aujourd\'hui ?',
+        sender: { _id: 'support', name: 'Support BINOVA' },
+        createdAt: new Date().toISOString(),
+        type: 'text'
+      }]);
+    }
+    this.loading.set(false);
+  }
+
+  saveMessages() {
+    localStorage.setItem(this.storageKey, JSON.stringify(this.messages()));
   }
 
   sendMessage() {
     if (!this.messageText.trim() && !this.imageFile) return;
 
-    const fd = new FormData();
-    fd.append('room', this.roomId);
-    if (this.messageText.trim()) fd.append('content', this.messageText);
-    if (this.imageFile) fd.append('image', this.imageFile);
+    const user = this.authService.currentUser;
+    const newMessage = {
+      _id: Date.now().toString(),
+      content: this.messageText.trim(),
+      sender: { _id: user?._id || 'user', name: user?.name || 'Vous' },
+      createdAt: new Date().toISOString(),
+      type: this.imageFile ? 'image' : 'text',
+      imageUrl: this.imageFile ? URL.createObjectURL(this.imageFile) : undefined
+    };
 
-    this.http.post(`${environment.apiUrl}/messages`, fd).subscribe({
-      next: () => {
-        this.messageText = '';
-        this.imageFile = null;
-      }
-    });
+    this.messages.update(m => [...m, newMessage]);
+    this.saveMessages();
+    this.messageText = '';
+    this.imageFile = null;
 
-    this.socketService.typing(this.roomId, false);
+    // Simulate support response
+    setTimeout(() => {
+      this.simulateResponse();
+    }, 1000 + Math.random() * 2000);
   }
 
-  onTyping() {
-    this.socketService.typing(this.roomId, true);
-    clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => this.socketService.typing(this.roomId, false), 2000);
+  simulateResponse() {
+    const responses = [
+      'Je comprends votre demande. Laissez-moi vérifier cela pour vous.',
+      'Merci pour votre message. Un agent va vous répondre bientôt.',
+      'Votre signalement a bien été pris en compte.',
+      'Pouvez-vous me donner plus de détails sur ce problème ?',
+      'Je suis là pour vous aider. N\'hésitez pas à poser vos questions.',
+      'Cette information a été transmise à l\'équipe concernée.',
+      'Nous traitons votre demande avec la plus haute priorité.'
+    ];
+
+    const response = {
+      _id: Date.now().toString(),
+      content: responses[Math.floor(Math.random() * responses.length)],
+      sender: { _id: 'support', name: 'Support BINOVA' },
+      createdAt: new Date().toISOString(),
+      type: 'text'
+    };
+
+    this.messages.update(m => [...m, response]);
+    this.saveMessages();
   }
 
   triggerImageUpload() {
@@ -314,7 +322,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   isMine(msg: any): boolean {
-    return msg.sender?._id === this.authService.currentUser?._id;
+    return msg.sender?._id === this.authService.currentUser?._id || msg.sender?._id === 'user';
   }
 
   formatTime(date: string): string {
@@ -325,6 +333,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     try {
       const el = this.messagesArea?.nativeElement;
       if (el) el.scrollTop = el.scrollHeight;
-    } catch {}
+    } catch { }
   }
 }
+

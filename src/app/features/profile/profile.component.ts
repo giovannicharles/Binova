@@ -24,7 +24,10 @@ import { UserService } from '../../core/services/api.services';
           <div class="level-badge">{{ user()?.level || 'Bronze' }}</div>
         </div>
         <h2>{{ user()?.name }}</h2>
-        <p class="user-zone">📍 {{ user()?.zone }}</p>
+        <p class="user-zone">
+          <i class="ri-map-pin-line" style="font-size: 16px;"></i>
+          {{ user()?.zone }}
+        </p>
         <div class="role-chip">{{ roleLabel() }}</div>
 
         <!-- Points bar -->
@@ -49,10 +52,12 @@ import { UserService } from '../../core/services/api.services';
         <div class="badges-grid">
           @for (badge of allBadges; track badge.id) {
             <div class="badge-item" [class.earned]="hasBadge(badge.id)">
-              <div class="badge-icon">{{ badge.icon }}</div>
+              <div class="badge-icon"><i [class]="badge.icon" style="font-size: 24px;"></i></div>
               <span class="badge-name">{{ badge.name }}</span>
               @if (!hasBadge(badge.id)) {
-                <span class="badge-locked">🔒</span>
+                <span class="badge-locked">
+                  <i class="ri-lock-line" style="font-size: 14px;"></i>
+                </span>
               }
             </div>
           }
@@ -89,7 +94,7 @@ import { UserService } from '../../core/services/api.services';
         <!-- Change password -->
         <div class="settings-card">
           <button class="settings-row" (click)="toggleChangePwd()">
-            <span class="settings-icon">🔐</span>
+            <i class="ri-lock-line settings-icon" style="font-size: 20px;"></i>
             <span class="settings-label">Changer le mot de passe</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path [attr.d]="showChangePwd() ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'"/>
@@ -102,7 +107,7 @@ import { UserService } from '../../core/services/api.services';
                 <div class="alert-error-sm">{{ pwdError() }}</div>
               }
               @if (pwdSuccess()) {
-                <div class="alert-success-sm">✅ Mot de passe modifié !</div>
+                <div class="alert-success-sm"><i class="ri-check-line" style="font-size: 14px;"></i> Mot de passe modifié !</div>
               }
               <input class="form-control" type="password" [(ngModel)]="pwdForm.current" placeholder="Mot de passe actuel">
               <input class="form-control" type="password" [(ngModel)]="pwdForm.new" placeholder="Nouveau mot de passe">
@@ -118,7 +123,7 @@ import { UserService } from '../../core/services/api.services';
         @if (canUse2FA()) {
           <div class="settings-card" style="margin-top: 12px">
             <div class="settings-row">
-              <span class="settings-icon">🛡️</span>
+              <i class="ri-shield-keyhole-line settings-icon" style="font-size: 20px;"></i>
               <span class="settings-label">Authentification 2FA</span>
               <div class="toggle" [class.on]="user()?.twoFactorEnabled" (click)="toggle2FA()"></div>
             </div>
@@ -168,7 +173,7 @@ import { UserService } from '../../core/services/api.services';
       <div class="section">
         <div class="settings-card">
           <div class="settings-row">
-            <span class="settings-icon">🏆</span>
+            <i class="ri-trophy-line settings-icon" style="font-size: 20px;"></i>
             <span class="settings-label">Participer au classement du quartier</span>
             <div class="toggle" [class.on]="rankingOptIn()" (click)="toggleRanking()"></div>
           </div>
@@ -187,7 +192,7 @@ import { UserService } from '../../core/services/api.services';
     .profile-page { background: var(--bg-soft); min-height: 100dvh; }
 
     .profile-header {
-      background: linear-gradient(160deg, var(--primary) 0%, var(--primary-light) 60%, #00D2FF 100%);
+      background: var(--primary);
       padding: 32px 24px 40px;
       text-align: center; color: #fff;
     }
@@ -208,7 +213,7 @@ import { UserService } from '../../core/services/api.services';
 
     .level-badge {
       position: absolute; bottom: 0; right: -8px;
-      background: linear-gradient(135deg, #F59E0B, #FCD34D);
+      background: var(--warning);
       color: #fff; font-size: 11px; font-weight: 800;
       padding: 4px 8px; border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -258,7 +263,7 @@ import { UserService } from '../../core/services/api.services';
       background: var(--primary-50); border: 2px solid var(--primary-100);
       display: flex; align-items: center; justify-content: center; font-size: 24px;
       transition: all 0.3s;
-      .badge-item.earned & { background: linear-gradient(135deg, var(--primary), var(--primary-light)); border-color: transparent; animation: pop-in 0.4s ease; }
+      .badge-item.earned & { background: var(--primary); border-color: transparent; animation: pop-in 0.4s ease; }
     }
 
     .badge-name { font-size: 10px; font-weight: 600; color: var(--text-muted); text-align: center; }
@@ -288,7 +293,7 @@ import { UserService } from '../../core/services/api.services';
       &:hover { background: var(--bg-soft); }
     }
 
-    .settings-icon { font-size: 20px; flex-shrink: 0; }
+    .settings-icon { flex-shrink: 0; }
     .settings-label { flex: 1; font-size: 14px; font-weight: 600; color: var(--text); }
 
     .toggle {
@@ -354,24 +359,24 @@ export class ProfileComponent implements OnInit {
   pwdForm = { current: '', new: '', confirm: '' };
 
   allBadges = [
-    { id: 'eco-starter', name: 'Éco Starter', icon: '🌱' },
-    { id: 'recycleur', name: 'Recycleur', icon: '♻️' },
-    { id: 'champion-vert', name: 'Champion Vert', icon: '🏆' },
-    { id: 'gardien-urbain', name: 'Gardien Urbain', icon: '🛡️' },
-    { id: 'ambassadeur', name: 'Ambassadeur', icon: '🌍' }
+    { id: 'eco-starter', name: 'Éco Starter', icon: 'ri-plant-line' },
+    { id: 'recycleur', name: 'Recycleur', icon: 'ri-recycle-line' },
+    { id: 'champion-vert', name: 'Champion Vert', icon: 'ri-trophy-line' },
+    { id: 'gardien-urbain', name: 'Gardien Urbain', icon: 'ri-shield-line' },
+    { id: 'ambassadeur', name: 'Ambassadeur', icon: 'ri-earth-line' }
   ];
 
   notifPrefs = [
-    { key: 'binAlerts', label: 'Alertes bacs', icon: '🗑️' },
-    { key: 'reportUpdates', label: 'Mises à jour signalements', icon: '📋' },
-    { key: 'collections', label: 'Passages collecte', icon: '🚛' },
-    { key: 'awareness', label: 'Sensibilisation', icon: '📰' }
+    { key: 'binAlerts', label: 'Alertes bacs', icon: 'ri-delete-bin-line' },
+    { key: 'reportUpdates', label: 'Mises à jour signalements', icon: 'ri-file-list-3-line' },
+    { key: 'collections', label: 'Passages collecte', icon: 'ri-truck-line' },
+    { key: 'awareness', label: 'Sensibilisation', icon: 'ri-newspaper-line' }
   ];
 
   constructor(
     private authService: AuthService,
     private userService: UserService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.rankingOptIn.set((this.user() as any)?.rankingOptIn || false);

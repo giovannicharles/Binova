@@ -33,10 +33,7 @@ interface NavItem {
         </div>
         <div class="top-bar-right">
           <button class="icon-btn" routerLink="/notifications" aria-label="Notifications">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+            <i class="ri-notification-3-line" style="font-size: 22px;"></i>
             @if (notifCount() > 0) {
               <span class="notif-badge">{{ notifCount() > 9 ? '9+' : notifCount() }}</span>
             }
@@ -64,7 +61,7 @@ interface NavItem {
                [class.active]="isActive(item.path)"
                (click)="onNavClick(item.path)">
               <div class="nav-icon-wrap">
-                <svg class="nav-icon" [innerHTML]="isActive(item.path) ? item.activeIcon : item.icon" width="24" height="24" viewBox="0 0 24 24"></svg>
+                <i [class]="isActive(item.path) ? item.activeIcon : item.icon" class="nav-icon" style="font-size: 22px;"></i>
                 @if (item.badge && item.badge > 0) {
                   <span class="nav-badge">{{ item.badge }}</span>
                 }
@@ -281,38 +278,38 @@ export class ShellComponent implements OnInit, OnDestroy {
     {
       path: '/dashboard',
       label: 'Accueil',
-      icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="2" fill="none"/>',
-      activeIcon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="var(--primary)" stroke="var(--primary)" stroke-width="1.5"/><polyline points="9 22 9 12 15 12 15 22" stroke="white" stroke-width="2" fill="none"/>'
+      icon: 'ri-home-4-line',
+      activeIcon: 'ri-home-4-fill'
     },
     {
       path: '/map',
       label: 'Carte',
-      icon: '<circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z" stroke="currentColor" stroke-width="2" fill="none"/>',
-      activeIcon: '<path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z" fill="var(--primary)" stroke="var(--primary)" stroke-width="1"/><circle cx="12" cy="10" r="3" fill="white"/>'
+      icon: 'ri-map-pin-line',
+      activeIcon: 'ri-map-pin-fill'
     },
     {
-      path: '/reports/new',
-      label: 'Signaler',
-      icon: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/><line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>',
-      activeIcon: '<circle cx="12" cy="12" r="10" fill="var(--primary)"/><line x1="12" y1="8" x2="12" y2="16" stroke="white" stroke-width="2.5"/><line x1="8" y1="12" x2="16" y2="12" stroke="white" stroke-width="2.5"/>'
+      path: '/reports',
+      label: 'Signalements',
+      icon: 'ri-file-list-3-line',
+      activeIcon: 'ri-file-list-3-fill'
     },
     {
       path: '/chat',
       label: 'Chat',
-      icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"/>',
-      activeIcon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="var(--primary)" stroke="var(--primary)" stroke-width="1"/>'
+      icon: 'ri-chat-3-line',
+      activeIcon: 'ri-chat-3-fill'
     },
     {
       path: '/profile',
       label: 'Profil',
-      icon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>',
-      activeIcon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="var(--primary)" stroke-width="2" fill="none"/><circle cx="12" cy="7" r="4" fill="var(--primary)" stroke="var(--primary)" stroke-width="1"/>'
+      icon: 'ri-user-line',
+      activeIcon: 'ri-user-fill'
     }
   ];
 
   private sub!: Subscription;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) { }
 
   ngOnInit() {
     this.sub = this.router.events.pipe(

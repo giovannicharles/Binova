@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { AwarenessService } from '../../../core/services/api.services';
 
-@Component({ selector: 'app-article-detail', standalone: true, imports: [CommonModule, RouterLink],
+@Component({
+  selector: 'app-article-detail', standalone: true, imports: [CommonModule, RouterLink],
   template: `
     <div class="article-detail">
       <div class="detail-header">
         <a routerLink="/awareness" class="back-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          <i class="ri-arrow-left-line" style="font-size: 20px;"></i>
         </a>
       </div>
       @if (article()) {
@@ -42,7 +43,7 @@ import { AwarenessService } from '../../../core/services/api.services';
 })
 export class ArticleDetailComponent implements OnInit {
   article = signal<any>(null);
-  constructor(private awarenessService: AwarenessService, private route: ActivatedRoute) {}
+  constructor(private awarenessService: AwarenessService, private route: ActivatedRoute) { }
   ngOnInit() {
     this.awarenessService.getArticle(this.route.snapshot.params['id']).subscribe({
       next: (res) => this.article.set(res.data)

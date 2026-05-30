@@ -34,9 +34,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       <div class="login-card animate-slide-up">
         @if (error()) {
           <div class="alert-error animate-pop-in">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
+            <i class="ri-error-warning-line" style="font-size: 18px;"></i>
             {{ error() }}
           </div>
         }
@@ -44,7 +42,9 @@ import { AuthService } from '../../../core/auth/auth.service';
         <!-- 2FA Step -->
         @if (requires2FA()) {
           <div class="two-fa-step animate-pop-in">
-            <div class="two-fa-icon">🔐</div>
+            <div class="two-fa-icon">
+              <i class="ri-shield-keyhole-line" style="font-size: 32px;"></i>
+            </div>
             <h3>Vérification 2FA</h3>
             <p>Entrez le code de votre application d'authentification</p>
             <div class="form-group">
@@ -64,9 +64,7 @@ import { AuthService } from '../../../core/auth/auth.service';
               <label>Email ou téléphone</label>
               <div class="input-group">
                 <span class="input-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                  </svg>
+                  <i class="ri-user-line" style="font-size: 18px;"></i>
                 </span>
                 <input class="form-control" type="text" name="identifier"
                        [(ngModel)]="identifier" required
@@ -79,24 +77,15 @@ import { AuthService } from '../../../core/auth/auth.service';
               <label>Mot de passe</label>
               <div class="input-group">
                 <span class="input-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
+                  <i class="ri-lock-line" style="font-size: 18px;"></i>
                 </span>
                 <input class="form-control" [type]="showPassword() ? 'text' : 'password'"
                        name="password" [(ngModel)]="password" required placeholder="••••••••">
                 <button type="button" class="input-suffix" (click)="toggleShowPassword()">
                   @if (showPassword()) {
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
+                    <i class="ri-eye-off-line" style="font-size: 18px;"></i>
                   } @else {
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
+                    <i class="ri-eye-line" style="font-size: 18px;"></i>
                   }
                 </button>
               </div>
@@ -308,7 +297,7 @@ export class LoginComponent {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) { }
 
   toggleShowPassword() {
     this.showPassword.update(v => !v);

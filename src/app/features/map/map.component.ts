@@ -25,7 +25,8 @@ import * as L from 'leaflet';
         @for (f of filters; track f.value) {
           <button class="filter-chip" [class.active]="activeFilter() === f.value"
                   (click)="setFilter(f.value)">
-            {{ f.icon }} {{ f.label }}
+            <i [class]="f.icon" style="font-size: 16px; margin-right: 4px;"></i>
+            {{ f.label }}
           </button>
         }
       </div>
@@ -43,7 +44,9 @@ import * as L from 'leaflet';
               <h3>{{ selectedBin().name }}</h3>
               <p>{{ selectedBin().zone }} · {{ selectedBin().address }}</p>
             </div>
-            <button class="close-btn" (click)="selectedBin.set(null)">✕</button>
+            <button class="close-btn" (click)="selectedBin.set(null)">
+              <i class="ri-close-line" style="font-size: 18px;"></i>
+            </button>
           </div>
 
           <div class="panel-stats">
@@ -71,10 +74,16 @@ import * as L from 'leaflet';
               {{ statusBadge(selectedBin()).label }}
             </span>
             @if (selectedBin().fillLevel >= 80) {
-              <span class="badge badge-warning">⚠️ Attention</span>
+              <span class="badge badge-warning">
+                <i class="ri-alarm-warning-line" style="font-size: 12px; margin-right: 2px;"></i>
+                Attention
+              </span>
             }
             @if (selectedBin().fillLevel >= 95) {
-              <span class="badge badge-danger">🚨 Critique</span>
+              <span class="badge badge-danger">
+                <i class="ri-error-warning-line" style="font-size: 12px; margin-right: 2px;"></i>
+                Critique
+              </span>
             }
           </div>
         </div>
@@ -241,20 +250,21 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   activeFilter = signal('all');
   private map!: L.Map;
   private markers: Map<string, L.Marker> = new Map();
+  private userMarker!: L.Marker;
   private subs: Subscription[] = [];
 
   filters = [
-    { value: 'all', label: 'Tous', icon: '🗺️' },
-    { value: 'critical', label: 'Critiques', icon: '🚨' },
-    { value: 'attention', label: 'Attention', icon: '⚠️' },
-    { value: 'ok', label: 'OK', icon: '✅' },
-    { value: 'offline', label: 'Hors ligne', icon: '⚫' }
+    { value: 'all', label: 'Tous', icon: 'ri-map-2-line' },
+    { value: 'critical', label: 'Critiques', icon: 'ri-error-warning-line' },
+    { value: 'attention', label: 'Attention', icon: 'ri-alarm-warning-line' },
+    { value: 'ok', label: 'OK', icon: 'ri-check-line' },
+    { value: 'offline', label: 'Hors ligne', icon: 'ri-wifi-off-line' }
   ];
 
   constructor(
     private binService: BinService,
     private socketService: SocketService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.socketService.connect();
@@ -288,7 +298,49 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
+    // Add user position
+    this.addUserPosition();
+
     this.loadBins();
+  }
+
+  addUserPosition() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+
+          const userIcon = L.divIcon({
+            className: '',
+            html: `
+              <div style="
+                width: 24px; height: 24px;
+                background: #2C7A3E;
+                border-radius: 50%;
+                border: 3px solid white;
+                box-shadow: 0 2px 8px rgba(44, 122, 62, 0.4);
+                display: flex; align-items: center; justify-content: center;
+              ">
+                <div style="
+                  width: 8px; height: 8px;
+                  background: white;
+                  border-radius: 50%;
+                "></div>
+              </div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+
+          this.userMarker = L.marker([latitude, longitude], { icon: userIcon })
+            .addTo(this.map)
+            .bindPopup('Votre position');
+        },
+        (error) => {
+          console.log('Geolocation error:', error);
+        }
+      );
+    }
   }
 
   loadBins() {
@@ -318,7 +370,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
           display: flex; align-items: center; justify-content: center;
           ${props.fillLevel >= 80 ? 'animation: pulse-green 1.5s infinite;' : ''}
         ">
-          <span style="transform: rotate(45deg); font-size: 14px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">🗑️</span>
+          <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+            <div style="width: 12px; height: 12px; background: white; border-radius: 50%;"></div>
+          </div>
         </div>
       `,
       iconSize: [36, 36],
@@ -342,7 +396,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     const color = this.binColor(bin);
     const icon = L.divIcon({
       className: '',
-      html: `<div style="width:36px;height:36px;background:${color};border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.25)"><span style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%">🗑️</span></div>`,
+      html: `<div style="width:36px;height:36px;background:${color};border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.25)"><div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%"><div style="width:12px;height:12px;background:white;border-radius:50%;"></div></div></div>`,
       iconSize: [36, 36], iconAnchor: [18, 36]
     });
     marker.setIcon(icon);

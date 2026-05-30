@@ -12,16 +12,16 @@ import { AuthService } from '../../../core/auth/auth.service';
     <div class="auth-page">
       <div class="auth-header">
         <button class="back-btn" routerLink="/auth/login">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
+          <i class="ri-arrow-left-line" style="font-size: 20px;"></i>
         </button>
         <h1>Mot de passe oublié</h1>
       </div>
 
       <div class="auth-body">
         @if (!sent()) {
-          <div class="icon-wrap">🔐</div>
+          <div class="icon-wrap">
+            <i class="ri-lock-line" style="font-size: 64px;"></i>
+          </div>
           <h2>Récupérer l'accès</h2>
           <p>Entrez votre email ou téléphone. Nous vous enverrons un lien de réinitialisation.</p>
 
@@ -41,7 +41,9 @@ import { AuthService } from '../../../core/auth/auth.service';
           </button>
         } @else {
           <div class="success-state animate-pop-in">
-            <div class="success-icon">✉️</div>
+            <div class="success-icon">
+              <i class="ri-mail-send-line" style="font-size: 80px;"></i>
+            </div>
             <h2>Email envoyé !</h2>
             <p>Si ce compte existe, vous recevrez un email avec les instructions de réinitialisation dans quelques minutes.</p>
             <p class="check-spam">Vérifiez aussi votre dossier spam.</p>
@@ -85,7 +87,7 @@ export class ForgotPasswordComponent {
   sent = signal(false);
   error = signal('');
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   send() {
     this.loading.set(true);
