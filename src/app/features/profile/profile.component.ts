@@ -160,7 +160,7 @@ import { UserService } from '../../core/services/api.services';
         <div class="settings-card">
           @for (pref of notifPrefs; track pref.key) {
             <div class="settings-row">
-              <span class="settings-icon">{{ pref.icon }}</span>
+              <i [class]="pref.icon" class="settings-icon" style="font-size: 20px;"></i>
               <span class="settings-label">{{ pref.label }}</span>
               <div class="toggle" [class.on]="getNotifPref(pref.key)"
                    (click)="toggleNotifPref(pref.key)"></div>

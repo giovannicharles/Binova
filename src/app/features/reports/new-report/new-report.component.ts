@@ -187,7 +187,7 @@ import { ReportService } from 'src/app/core/services/api.services';
                 </div>
                 <div class="summary-row">
                   <span class="sum-label">Position</span>
-                  <span>{{ form.latitude?.toFixed(4) }}, {{ form.longitude?.toFixed(4) }}</span>
+                  <span>{{ form.latitude.toFixed(4) }}, {{ form.longitude.toFixed(4) }}</span>
                 </div>
                 @if (photos().length > 0) {
                   <div class="summary-row">

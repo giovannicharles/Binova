@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BinService } from '../../core/services/api.services';
 import { SocketService } from '../../core/services/socket.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { Subscription } from 'rxjs';
 import * as L from 'leaflet';
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-map',
   standalone: true,
@@ -27,9 +28,43 @@ import * as L from 'leaflet';
                   (click)="setFilter(f.value)">
             <i [class]="f.icon" style="font-size: 16px; margin-right: 4px;"></i>
             {{ f.label }}
+            @if (f.count > 0) {
+              <span class="filter-count">{{ f.count }}</span>
+            }
           </button>
         }
       </div>
+
+      <!-- Advanced filter toggle -->
+      <button class="advanced-filter-toggle" (click)="showAdvancedFilters.set(!showAdvancedFilters())">
+        <i class="ri-filter-3-line" style="font-size: 16px;"></i>
+        Filtres avancés
+        <i [class]="showAdvancedFilters() ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'" style="font-size: 16px;"></i>
+      </button>
+
+      <!-- Advanced filters -->
+      @if (showAdvancedFilters()) {
+        <div class="advanced-filters">
+          <div class="filter-row">
+            <label>Niveau de remplissage</label>
+            <div class="range-inputs">
+              <input type="range" min="0" max="100" [value]="fillLevelMin()" (input)="onFillLevelMinChange($event); applyAdvancedFilters()">
+              <span>{{ fillLevelMin() }}%</span>
+              <input type="range" min="0" max="100" [value]="fillLevelMax()" (input)="onFillLevelMaxChange($event); applyAdvancedFilters()">
+              <span>{{ fillLevelMax() }}%</span>
+            </div>
+          </div>
+          <div class="filter-row">
+            <label>Zone</label>
+            <select class="zone-select" [value]="selectedZone()" (change)="onZoneChange($event); applyAdvancedFilters()">
+              <option value="">Toutes les zones</option>
+              @for (zone of availableZones(); track zone) {
+                <option [value]="zone">{{ zone }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      }
 
       <!-- Map -->
       <div id="map-container" class="map-container"></div>
@@ -86,6 +121,11 @@ import * as L from 'leaflet';
               </span>
             }
           </div>
+
+          <a class="view-details-btn" (click)="goToDetail(selectedBin()?._id || '')">
+            <i class="ri-eye-line" style="font-size: 16px; margin-right: 6px;"></i>
+            Voir les détails
+          </a>
         </div>
       }
 
@@ -159,6 +199,92 @@ import * as L from 'leaflet';
       }
     }
 
+    .filter-count {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .advanced-filter-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 16px;
+      background: var(--bg);
+      border: none;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+
+      &:hover {
+        background: var(--bg-soft);
+        color: var(--primary);
+      }
+    }
+
+    .advanced-filters {
+      background: var(--bg);
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-row label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .range-inputs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-inputs input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+
+    .range-inputs span {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .zone-select {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-soft);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: all var(--transition);
+
+      &:focus {
+        border-color: var(--primary);
+      }
+    }
+
     .map-container {
       flex: 1;
       z-index: 1;
@@ -220,6 +346,27 @@ import * as L from 'leaflet';
 
     .panel-badges { display: flex; gap: 8px; flex-wrap: wrap; }
 
+    .view-details-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 16px;
+      padding: 12px 20px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all var(--transition);
+
+      &:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+    }
+
     .map-legend {
       position: absolute;
       bottom: 12px; right: 12px;
@@ -248,22 +395,29 @@ import * as L from 'leaflet';
 export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedBin = signal<any>(null);
   activeFilter = signal('all');
+  showAdvancedFilters = signal(false);
+  fillLevelMin = signal(0);
+  fillLevelMax = signal(100);
+  selectedZone = signal('');
+  allBins = signal<any[]>([]);
   private map!: L.Map;
   private markers: Map<string, L.Marker> = new Map();
   private userMarker!: L.Marker;
   private subs: Subscription[] = [];
 
   filters = [
-    { value: 'all', label: 'Tous', icon: 'ri-map-2-line' },
-    { value: 'critical', label: 'Critiques', icon: 'ri-error-warning-line' },
-    { value: 'attention', label: 'Attention', icon: 'ri-alarm-warning-line' },
-    { value: 'ok', label: 'OK', icon: 'ri-check-line' },
-    { value: 'offline', label: 'Hors ligne', icon: 'ri-wifi-off-line' }
-  ];
+    { value: 'all', label: 'Tous', icon: 'ri-map-2-line', count: 0 },
+    { value: 'critical', label: 'Critiques', icon: 'ri-error-warning-line', count: 0 },
+    { value: 'attention', label: 'Attention', icon: 'ri-alarm-warning-line', count: 0 },
+    { value: 'ok', label: 'OK', icon: 'ri-check-line', count: 0 },
+    { value: 'offline', label: 'Hors ligne', icon: 'ri-wifi-off-line', count: 0 }
+  ] as any[];
 
   constructor(
     private binService: BinService,
-    private socketService: SocketService
+    private socketService: SocketService,
+    private router: Router,
+    private authService: AuthService
   ) { }
 
   ngOnInit() {
@@ -288,7 +442,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.map = L.map('map-container', {
       center: [3.8667, 11.5167], // Yaoundé
       zoom: 13,
-      zoomControl: false
+      zoomControl: true
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -347,9 +501,64 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.binService.getGeoJSON().subscribe({
       next: (res) => {
         const features = res.data?.features || [];
-        features.forEach((f: any) => this.addMarker(f));
+        const user = this.authService.currentUser as any;
+
+        // Filter bins by client/user if user has assigned bins
+        const filteredFeatures = features.filter((f: any) => {
+          const props = f.properties;
+          // If user has assigned bins, only show those
+          if (user?.assignedBins && user.assignedBins.length > 0) {
+            return user.assignedBins.includes(props.binId);
+          }
+          // Otherwise show all bins
+          return true;
+        });
+
+        // Store all bins for advanced filtering
+        this.allBins.set(filteredFeatures.map((f: any) => f.properties));
+        this.updateFilterCounts();
+
+        filteredFeatures.forEach((f: any) => this.addMarker(f));
+      },
+      error: () => {
+        // Fallback to mock data if API fails
+        this.loadMockBins();
       }
     });
+  }
+
+  loadMockBins() {
+    const mockBins = [
+      {
+        geometry: { type: 'Point', coordinates: [11.5167, 3.8667] },
+        properties: {
+          binId: 'BIN-001',
+          name: 'Bac Marché Central',
+          zone: 'Centre-ville',
+          address: 'Marché Central, Yaoundé',
+          fillLevel: 75,
+          status: 'active',
+          battery: 85,
+          openingsToday: 12
+        }
+      },
+      {
+        geometry: { type: 'Point', coordinates: [11.5200, 3.8700] },
+        properties: {
+          binId: 'BIN-002',
+          name: 'Bac Avenue Kennedy',
+          zone: 'Bastos',
+          address: 'Avenue Kennedy, Yaoundé',
+          fillLevel: 92,
+          status: 'active',
+          battery: 78,
+          openingsToday: 8
+        }
+      }
+    ];
+    this.allBins.set(mockBins.map((f: any) => f.properties));
+    this.updateFilterCounts();
+    mockBins.forEach((f: any) => this.addMarker(f));
   }
 
   addMarker(feature: any) {
@@ -386,6 +595,8 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         this.selectedBin.set(props);
       });
 
+    // Store bin properties on marker for filtering
+    (marker as any)._binProps = props;
     this.markers.set(props.binId, marker);
   }
 
@@ -435,9 +646,97 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   setFilter(value: string) {
     this.activeFilter.set(value);
+    this.applyFilters();
+  }
+
+  applyFilters() {
     this.markers.forEach((marker, binId) => {
       const bin = (marker as any)._binProps;
-      // Show/hide based on filter
+      if (!bin) return;
+
+      let visible = true;
+      const filter = this.activeFilter();
+
+      if (filter === 'critical') {
+        visible = bin.fillLevel >= 95;
+      } else if (filter === 'attention') {
+        visible = bin.fillLevel >= 80 && bin.fillLevel < 95;
+      } else if (filter === 'ok') {
+        visible = bin.fillLevel < 80 && bin.status === 'active';
+      } else if (filter === 'offline') {
+        visible = bin.status === 'offline' || bin.status === 'maintenance';
+      }
+
+      if (visible) {
+        marker.addTo(this.map);
+      } else {
+        marker.remove();
+      }
     });
+  }
+
+  applyAdvancedFilters() {
+    const minFill = this.fillLevelMin();
+    const maxFill = this.fillLevelMax();
+    const zone = this.selectedZone();
+
+    this.markers.forEach((marker, binId) => {
+      const bin = (marker as any)._binProps;
+      if (!bin) return;
+
+      let visible = true;
+
+      // Apply fill level filter
+      if (bin.fillLevel < minFill || bin.fillLevel > maxFill) {
+        visible = false;
+      }
+
+      // Apply zone filter
+      if (zone && bin.zone !== zone) {
+        visible = false;
+      }
+
+      if (visible) {
+        marker.addTo(this.map);
+      } else {
+        marker.remove();
+      }
+    });
+  }
+
+  onFillLevelMinChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.fillLevelMin.set(Number(target.value));
+  }
+
+  onFillLevelMaxChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.fillLevelMax.set(Number(target.value));
+  }
+
+  onZoneChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.selectedZone.set(target.value);
+  }
+
+  availableZones() {
+    const zones = new Set<string>();
+    this.allBins().forEach(bin => {
+      if (bin.zone) zones.add(bin.zone);
+    });
+    return Array.from(zones).sort();
+  }
+
+  updateFilterCounts() {
+    const bins = this.allBins();
+    this.filters[0].count = bins.length; // all
+    this.filters[1].count = bins.filter(b => b.fillLevel >= 95).length; // critical
+    this.filters[2].count = bins.filter(b => b.fillLevel >= 80 && b.fillLevel < 95).length; // attention
+    this.filters[3].count = bins.filter(b => b.fillLevel < 80 && b.status === 'active').length; // ok
+    this.filters[4].count = bins.filter(b => b.status === 'offline' || b.status === 'maintenance').length; // offline
+  }
+
+  goToDetail(binId: string) {
+    this.router.navigate(['/bins', binId]);
   }
 }
