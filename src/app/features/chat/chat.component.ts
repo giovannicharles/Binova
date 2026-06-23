@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { Subscription } from 'rxjs';
+import { SocketService } from '../../core/services/socket.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-chat',
@@ -24,7 +26,11 @@ import { Subscription } from 'rxjs';
             <h2>Support BINOVA</h2>
             <span class="online-status">
               <span class="status-dot"></span>
-              En ligne
+              @if (socketConnected()) {
+                En ligne
+              } @else {
+                Hors ligne
+              }
             </span>
           </div>
         </div>
@@ -37,6 +43,13 @@ import { Subscription } from 'rxjs';
             @for (s of [1,2,3,4]; track s) {
               <div class="shimmer msg-skeleton" [class.right]="s % 2 === 0"></div>
             }
+          </div>
+        }
+
+        @if (typingUsers().length > 0) {
+          <div class="typing-indicator">
+            <span class="typing-dots"></span>
+            <span>{{ typingUsers().join(', ') }} est en train d'écrire...</span>
           </div>
         }
 
@@ -56,6 +69,11 @@ import { Subscription } from 'rxjs';
                 <p class="msg-text">{{ msg.content }}</p>
               }
               <span class="msg-time">{{ formatTime(msg.createdAt) }}</span>
+              @if (isMine(msg)) {
+                <span class="msg-read-status">
+                  <i class="ri-check-double-line" [class.read]="msg.read"></i>
+                </span>
+              }
             </div>
           </div>
         } @empty {
@@ -78,7 +96,8 @@ import { Subscription } from 'rxjs';
         <div class="msg-input-wrap">
           <input class="msg-input" type="text" [(ngModel)]="messageText"
                  placeholder="Écrire un message..."
-                 (keyup.enter)="sendMessage()">
+                 (keyup.enter)="sendMessage()"
+                 (input)="onTyping()">
         </div>
 
         <button class="send-btn" [disabled]="!messageText.trim() && !imageFile"
@@ -140,6 +159,32 @@ import { Subscription } from 'rxjs';
       &.right { align-self: flex-end; }
     }
 
+    .typing-indicator {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg-soft);
+      border-radius: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      animation: slide-up 0.3s ease;
+    }
+
+    .typing-dots {
+      display: flex; gap: 4px;
+      span {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--primary-400);
+        animation: typing-bounce 1.4s infinite ease-in-out both;
+        &:nth-child(1) { animation-delay: -0.32s; }
+        &:nth-child(2) { animation-delay: -0.16s; }
+      }
+    }
+
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
     .msg-wrap {
       display: flex; align-items: flex-end; gap: 8px;
       animation: slide-up 0.25s ease;
@@ -176,6 +221,13 @@ import { Subscription } from 'rxjs';
 
     .msg-time { font-size: 10px; color: var(--text-light); display: block; text-align: right; margin-top: 4px; }
     .msg-bubble.mine .msg-time { color: rgba(255,255,255,0.7); }
+
+    .msg-read-status {
+      margin-left: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      &.read { color: #4ade80; }
+    }
 
     .empty-chat { text-align: center; margin: auto; span { font-size: 48px; display: block; margin-bottom: 12px; } p { color: var(--text-muted); font-size: 14px; } }
 
@@ -223,15 +275,40 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loading = signal(true);
   messageText = '';
   imageFile: File | null = null;
+  socketConnected = signal(false);
+  typingUsers = signal<string[]>([]);
   private roomId = 'support-general';
-  private storageKey = 'binova_chat_messages';
+  private typingTimeout: any;
 
   constructor(
-    private authService: AuthService
+    private authService: AuthService,
+    private socketService: SocketService,
+    private http: HttpClient
   ) { }
 
   ngOnInit() {
+    this.socketService.connect();
+    this.socketService.isConnected$.subscribe(connected => {
+      this.socketConnected.set(connected);
+    });
+
+    this.socketService.joinRoom(this.roomId);
     this.loadMessages();
+
+    // Listen for new messages
+    this.socketService.on<any>('message:new').subscribe(({ message }) => {
+      this.messages.update(m => [...m, message]);
+      this.scrollToBottom();
+    });
+
+    // Listen for typing indicators
+    this.socketService.on<any>('message:typing').subscribe(({ userId, name, isTyping }) => {
+      if (isTyping) {
+        this.typingUsers.update(users => [...new Set([...users, name])]);
+      } else {
+        this.typingUsers.update(users => users.filter(u => u !== name));
+      }
+    });
   }
 
   ngAfterViewChecked() {
@@ -239,75 +316,40 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy() {
-    this.saveMessages();
+    this.socketService.leaveRoom(this.roomId);
+    if (this.typingTimeout) clearTimeout(this.typingTimeout);
   }
 
-  loadMessages() {
-    const stored = localStorage.getItem(this.storageKey);
-    if (stored) {
-      this.messages.set(JSON.parse(stored));
-    } else {
-      // Initial welcome message
-      this.messages.set([{
-        _id: '1',
-        content: 'Bonjour ! Comment puis-je vous aider aujourd\'hui ?',
-        sender: { _id: 'support', name: 'Support BINOVA' },
-        createdAt: new Date().toISOString(),
-        type: 'text'
-      }]);
+  async loadMessages() {
+    try {
+      const response = await this.http.get<any>(`${environment.apiUrl}/messages/${this.roomId}`).toPromise();
+      if (response?.success) {
+        this.messages.set(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
     }
     this.loading.set(false);
   }
 
-  saveMessages() {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.messages()));
-  }
-
-  sendMessage() {
+  async sendMessage() {
     if (!this.messageText.trim() && !this.imageFile) return;
 
-    const user = this.authService.currentUser;
-    const newMessage = {
-      _id: Date.now().toString(),
-      content: this.messageText.trim(),
-      sender: { _id: user?._id || 'user', name: user?.name || 'Vous' },
-      createdAt: new Date().toISOString(),
-      type: this.imageFile ? 'image' : 'text',
-      imageUrl: this.imageFile ? URL.createObjectURL(this.imageFile) : undefined
-    };
+    const formData = new FormData();
+    formData.append('room', this.roomId);
+    formData.append('content', this.messageText.trim());
+    if (this.imageFile) {
+      formData.append('image', this.imageFile);
+    }
 
-    this.messages.update(m => [...m, newMessage]);
-    this.saveMessages();
-    this.messageText = '';
-    this.imageFile = null;
-
-    // Simulate support response
-    setTimeout(() => {
-      this.simulateResponse();
-    }, 1000 + Math.random() * 2000);
-  }
-
-  simulateResponse() {
-    const responses = [
-      'Je comprends votre demande. Laissez-moi vérifier cela pour vous.',
-      'Merci pour votre message. Un agent va vous répondre bientôt.',
-      'Votre signalement a bien été pris en compte.',
-      'Pouvez-vous me donner plus de détails sur ce problème ?',
-      'Je suis là pour vous aider. N\'hésitez pas à poser vos questions.',
-      'Cette information a été transmise à l\'équipe concernée.',
-      'Nous traitons votre demande avec la plus haute priorité.'
-    ];
-
-    const response = {
-      _id: Date.now().toString(),
-      content: responses[Math.floor(Math.random() * responses.length)],
-      sender: { _id: 'support', name: 'Support BINOVA' },
-      createdAt: new Date().toISOString(),
-      type: 'text'
-    };
-
-    this.messages.update(m => [...m, response]);
-    this.saveMessages();
+    try {
+      await this.http.post(`${environment.apiUrl}/messages`, formData).toPromise();
+      this.messageText = '';
+      this.imageFile = null;
+      this.socketService.emit('message:typing', { roomId: this.roomId, isTyping: false });
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   }
 
   triggerImageUpload() {
@@ -321,8 +363,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.sendMessage();
   }
 
+  onTyping() {
+    this.socketService.emit('message:typing', { roomId: this.roomId, isTyping: true });
+
+    if (this.typingTimeout) clearTimeout(this.typingTimeout);
+    this.typingTimeout = setTimeout(() => {
+      this.socketService.emit('message:typing', { roomId: this.roomId, isTyping: false });
+    }, 1000);
+  }
+
   isMine(msg: any): boolean {
-    return msg.sender?._id === this.authService.currentUser?._id || msg.sender?._id === 'user';
+    return msg.sender?._id === this.authService.currentUser?._id;
   }
 
   formatTime(date: string): string {

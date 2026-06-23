@@ -13,6 +13,10 @@ export class BinService {
     return this.http.get(this.api, { params });
   }
 
+  getMyBins(): Observable<any> {
+    return this.http.get(`${this.api}/my`);
+  }
+
   getGeoJSON(zone?: string): Observable<any> {
     let httpParams = new HttpParams();
     if (zone) {
@@ -58,6 +62,10 @@ export class ReportService {
 
   getReports(params?: any): Observable<any> {
     return this.http.get(this.api, { params });
+  }
+
+  getMyReports(): Observable<any> {
+    return this.http.get(`${this.api}/my`);
   }
 
   getReport(id: string): Observable<any> {

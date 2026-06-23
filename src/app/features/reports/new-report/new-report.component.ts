@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ReportService } from 'src/app/core/services/api.services';
+import { ReportService, BinService } from 'src/app/core/services/api.services';
+import { AuthService } from 'src/app/core/auth/auth.service';
 
 @Component({
   selector: 'app-new-report',
@@ -132,6 +133,38 @@ import { ReportService } from 'src/app/core/services/api.services';
                        placeholder="Rue, quartier...">
               </div>
 
+              <!-- Bin Selection -->
+              <div class="form-group">
+                <label>Bac concerné *</label>
+                @if (binsLoading()) {
+                  <div class="loading-bins">
+                    <span class="spinner-green"></span>
+                    <p>Chargement des bacs...</p>
+                  </div>
+                } @else if (bins().length === 0) {
+                  <div class="no-bins">
+                    <i class="ri-delete-bin-line" style="font-size: 32px; color: var(--text-muted);"></i>
+                    <p>Aucun bac disponible dans votre zone</p>
+                  </div>
+                } @else {
+                  <div class="bin-selector">
+                    @for (bin of bins(); track bin._id) {
+                      <div class="bin-option" [class.selected]="form.binId === bin._id"
+                           (click)="selectBin(bin)">
+                        <div class="bin-option-icon">
+                          <i class="ri-delete-bin-line" style="font-size: 24px;"></i>
+                        </div>
+                        <div class="bin-option-info">
+                          <div class="bin-option-name">{{ bin.name }}</div>
+                          <div class="bin-option-details">{{ bin.binId }} · {{ bin.fillLevel }}%</div>
+                        </div>
+                        <div class="bin-option-status" [style.background]="getBinStatusColor(bin.fillLevel)"></div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
               <!-- Photo -->
               <div class="form-group">
                 <label>Photos (optionnel, max 5)</label>
@@ -160,7 +193,7 @@ import { ReportService } from 'src/app/core/services/api.services';
 
               <div class="btn-row">
                 <button class="btn btn-outline" (click)="step.set(1)">← Retour</button>
-                <button class="btn btn-primary" (click)="nextStep()" [disabled]="!form.latitude">
+                <button class="btn btn-primary" (click)="nextStep()" [disabled]="!form.latitude || !form.binId">
                   Continuer →
                 </button>
               </div>
@@ -184,6 +217,10 @@ import { ReportService } from 'src/app/core/services/api.services';
                 <div class="summary-row">
                   <span class="sum-label">Priorité</span>
                   <span>{{ priorityLabel() }}</span>
+                </div>
+                <div class="summary-row">
+                  <span class="sum-label">Bac concerné</span>
+                  <span>{{ selectedBin()?.name }} ({{ selectedBin()?.binId }})</span>
                 </div>
                 <div class="summary-row">
                   <span class="sum-label">Position</span>
@@ -337,6 +374,50 @@ import { ReportService } from 'src/app/core/services/api.services';
       font-size: 24px; color: var(--text-muted);
     }
 
+    .loading-bins {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 24px; color: var(--text-muted);
+    }
+
+    .no-bins {
+      text-align: center; padding: 24px; color: var(--text-muted);
+      p { margin-top: 8px; font-size: 14px; }
+    }
+
+    .bin-selector {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .bin-option {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px; border-radius: 12px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      cursor: pointer; transition: all var(--transition);
+
+      &.selected {
+        border-color: var(--primary);
+        background: var(--primary-50);
+      }
+
+      &:active { transform: scale(0.98); }
+    }
+
+    .bin-option-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--bg-soft);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--primary);
+    }
+
+    .bin-option-info { flex: 1; }
+    .bin-option-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .bin-option-details { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .bin-option-status {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+
     .btn-row { display: flex; gap: 12px; .btn { flex: 1; } }
 
     .summary-card {
@@ -383,17 +464,22 @@ import { ReportService } from 'src/app/core/services/api.services';
   `]
 })
 export class NewReportComponent implements OnInit {
+  user = this.authService.user;
   step = signal(1);
   loading = signal(false);
   success = signal(false);
   error = signal('');
   locating = signal(false);
   photos = signal<{ file: File; preview: string }[]>([]);
+  bins = signal<any[]>([]);
+  binsLoading = signal(true);
 
   form = {
     title: '', description: '', category: '', priority: 'medium',
-    latitude: 0, longitude: 0, address: '', zone: ''
+    latitude: 0, longitude: 0, address: '', zone: this.user()?.zone, binId: ''
   };
+
+  selectedBin = computed(() => this.bins().find(b => b._id === this.form.binId));
 
   categories = [
     { value: 'overflow', label: 'Débordement', icon: 'ri-delete-bin-line' },
@@ -411,9 +497,40 @@ export class NewReportComponent implements OnInit {
     { value: 'critical', label: 'Critique', icon: 'ri-checkbox-blank-circle-line', color: '#DC2626', bg: '#FEE2E2' }
   ];
 
-  constructor(private reportService: ReportService, private router: Router) { }
+  constructor(private reportService: ReportService, private binService: BinService,
+    private router: Router, private authService: AuthService
+  ) { }
 
-  ngOnInit() { this.getLocation(); }
+  ngOnInit() {
+    this.getLocation();
+    this.loadBins();
+  }
+
+  loadBins() {
+    const zone = this.user()?.zone;
+    if (zone) {
+      this.binService.getBins({ zone }).subscribe({
+        next: (data: any) => {
+          this.bins.set(data.data || data);
+          this.binsLoading.set(false);
+        },
+        error: () => this.binsLoading.set(false)
+      });
+    } else {
+      this.binsLoading.set(false);
+    }
+  }
+
+  selectBin(bin: any) {
+    this.form.binId = bin._id;
+  }
+
+  getBinStatusColor(fillLevel: number): string {
+    if (fillLevel >= 95) return '#DC2626';
+    if (fillLevel >= 80) return '#EA580C';
+    if (fillLevel >= 60) return '#D97706';
+    return '#16A34A';
+  }
 
   stepLabel(): string {
     return ['Type & Description', 'Localisation', 'Résumé'][this.step() - 1];
@@ -473,7 +590,15 @@ export class NewReportComponent implements OnInit {
     this.error.set('');
 
     const fd = new FormData();
-    Object.entries(this.form).forEach(([k, v]) => fd.append(k, String(v)));
+    fd.append('title', this.form.title || '');
+    fd.append('description', this.form.description || '');
+    fd.append('category', this.form.category || '');
+    fd.append('priority', this.form.priority || 'medium');
+    fd.append('latitude', String(this.form.latitude));
+    fd.append('longitude', String(this.form.longitude));
+    fd.append('address', this.form.address || '');
+    fd.append('zone', this.form.zone || '');
+    fd.append('binId', this.form.binId || '');
     this.photos().forEach(p => fd.append('photos', p.file));
 
     this.reportService.createReport(fd).subscribe({

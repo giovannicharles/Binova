@@ -181,6 +181,86 @@ Chart.register(...registerables);
         </div>
       </div>
 
+      <!-- Environmental Impact - New Feature -->
+      <div class="section-title">
+        Votre impact environnemental
+      </div>
+      <div class="impact-card">
+        <div class="impact-item">
+          <div class="impact-icon" style="background: #DCFCE7; color: #16A34A">
+            <i class="ri-leaf-line" style="font-size: 24px;"></i>
+          </div>
+          <div class="impact-info">
+            <div class="impact-value">127 kg</div>
+            <div class="impact-label">CO2 économisé</div>
+          </div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-icon" style="background: #DBEAFE; color: #2563EB">
+            <i class="ri-tree-line" style="font-size: 24px;"></i>
+          </div>
+          <div class="impact-info">
+            <div class="impact-value">5.8</div>
+            <div class="impact-label">Arbres équivalents</div>
+          </div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-icon" style="background: #FEF3C7; color: #D97706">
+            <i class="ri-recycle-line" style="font-size: 24px;"></i>
+          </div>
+          <div class="impact-info">
+            <div class="impact-value">342 kg</div>
+            <div class="impact-label">Déchets recyclés</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements - New Feature -->
+      <div class="section-title">
+        Badges et réussites
+      </div>
+      <div class="achievements-scroll">
+        @for (badge of badges(); track badge.id) {
+          <div class="badge-item" [class.unlocked]="badge.unlocked">
+            <div class="badge-icon" [style.background]="badge.unlocked ? badge.color : 'var(--bg-soft)'">
+              <i [class]="badge.icon" [style.color]="badge.unlocked ? '#fff' : 'var(--text-light)'" style="font-size: 24px;"></i>
+            </div>
+            <div class="badge-info">
+              <div class="badge-name">{{ badge.name }}</div>
+              <div class="badge-desc">{{ badge.description }}</div>
+            </div>
+            @if (badge.unlocked) {
+              <div class="badge-check">
+                <i class="ri-check-line" style="color: var(--success); font-size: 18px;"></i>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Community Challenge - New Feature -->
+      <div class="challenge-card">
+        <div class="challenge-header">
+          <div class="challenge-icon">
+            <i class="ri-trophy-line" style="font-size: 28px; color: #FFD700;"></i>
+          </div>
+          <div class="challenge-info">
+            <div class="challenge-title">Défi communautaire</div>
+            <div class="challenge-subtitle">Recyclez 5000kg cette semaine</div>
+          </div>
+          <div class="challenge-progress">
+            <div class="progress-value">72%</div>
+          </div>
+        </div>
+        <div class="challenge-bar">
+          <div class="challenge-bar-fill" style="width: 72%"></div>
+        </div>
+        <div class="challenge-footer">
+          <span>3,600 kg / 5,000 kg</span>
+          <span class="challenge-time">2 jours restants</span>
+        </div>
+      </div>
+
       <div style="height: 24px"></div>
     </div>
   `,
@@ -435,6 +515,198 @@ Chart.register(...registerables);
         transform: scale(0.95);
       }
     }
+
+    .impact-card {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .impact-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 12px 8px;
+      background: var(--bg-soft);
+      border-radius: var(--radius);
+      transition: all var(--transition);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+    }
+
+    .impact-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .impact-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .impact-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .achievements-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      max-height: 320px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .badge-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition);
+      opacity: 0.6;
+
+      &.unlocked {
+        opacity: 1;
+        background: linear-gradient(135deg, var(--bg), var(--primary-50));
+        border: 1px solid var(--primary-200);
+      }
+
+      &:hover {
+        transform: translateX(4px);
+      }
+    }
+
+    .badge-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .badge-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .badge-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .badge-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .badge-check {
+      flex-shrink: 0;
+    }
+
+    .challenge-card {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      color: #fff;
+    }
+
+    .challenge-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .challenge-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .challenge-info {
+      flex: 1;
+    }
+
+    .challenge-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .challenge-subtitle {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .challenge-progress {
+      background: rgba(255,255,255,0.25);
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 18px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .challenge-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .challenge-bar-fill {
+      height: 100%;
+      background: #fff;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .challenge-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .challenge-time {
+      color: #fff;
+    }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -445,6 +717,14 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   loading = signal(true);
   binsLoading = signal(true);
   criticalCount = signal(0);
+  badges = signal<any[]>([
+    { id: 1, name: 'Premier signalement', description: 'Votre premier signalement', icon: 'ri-flag-line', color: '#2C7A3E', unlocked: true },
+    { id: 2, name: 'Éco-citoyen', description: '10 signalements', icon: 'ri-leaf-line', color: '#16A34A', unlocked: true },
+    { id: 3, name: 'Recycleur', description: '50kg recyclés', icon: 'ri-recycle-line', color: '#D97706', unlocked: true },
+    { id: 4, name: 'Champion', description: '100 signalements', icon: 'ri-trophy-line', color: '#FFD700', unlocked: false },
+    { id: 5, name: 'Ambassadeur', description: 'Partager 5 fois', icon: 'ri-share-line', color: '#8B5CF6', unlocked: false },
+    { id: 6, name: 'Expert', description: 'Niveau 10', icon: 'ri-medal-line', color: '#EF4444', unlocked: false }
+  ]);
 
   @ViewChild('fillTrendChart') fillTrendChart!: ElementRef;
   @ViewChild('contributionChart') contributionChart!: ElementRef;
@@ -593,36 +873,28 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loading.set(true);
     this.binsLoading.set(true);
 
-    this.statsService.getDashboard().subscribe({
-      next: (res) => { this.stats.set(res.data); this.loading.set(false); },
-      error: () => {
-        // Mock data fallback for demo
-        this.stats.set({
-          bins: { total: 42, avgFillLevel: 67, critical: 3 },
-          reports: { pending: 5, resolvedToday: 12 }
-        });
-        this.loading.set(false);
-      }
-    });
-
-    const zone = this.user()?.zone;
-    this.binService.getBins(zone ? { zone } : {}).subscribe({
+    // Load user's personal bins
+    this.binService.getMyBins().subscribe({
       next: (res) => {
         this.nearbyBins.set(res.data?.slice(0, 5) || []);
         this.binsLoading.set(false);
         this.updateCriticalCount();
       },
       error: () => {
-        // Mock data fallback for demo
-        this.nearbyBins.set([
-          { _id: '1', name: 'BAC-001', fillLevel: 85, status: 'online', zone: 'Bastos' },
-          { _id: '2', name: 'BAC-002', fillLevel: 45, status: 'online', zone: 'Bastos' },
-          { _id: '3', name: 'BAC-003', fillLevel: 97, status: 'online', zone: 'Bastos' },
-          { _id: '4', name: 'BAC-004', fillLevel: 32, status: 'online', zone: 'Bastos' },
-          { _id: '5', name: 'BAC-005', fillLevel: 68, status: 'offline', zone: 'Bastos' }
-        ]);
-        this.binsLoading.set(false);
-        this.updateCriticalCount();
+        // Fallback to zone bins if personal bins fail
+        const zone = this.user()?.zone;
+        this.binService.getBins(zone ? { zone } : {}).subscribe({
+          next: (res) => {
+            this.nearbyBins.set(res.data?.slice(0, 5) || []);
+            this.binsLoading.set(false);
+            this.updateCriticalCount();
+          },
+          error: () => {
+            this.nearbyBins.set([]);
+            this.binsLoading.set(false);
+            this.updateCriticalCount();
+          }
+        });
       }
     });
 
